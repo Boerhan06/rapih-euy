@@ -11,7 +11,6 @@ class RustEngineService {
   Process? _process;
   int _requestId = 0;
   final Map<String, Completer<dynamic>> _pendingRequests = {};
-  final _stdoutController = StreamController<String>.broadcast();
 
   String get _enginePath {
     // Look in current directory or target/release/debug
