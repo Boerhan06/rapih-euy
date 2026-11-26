@@ -32,11 +32,12 @@ Aplikasi pembersih konvensional sering kali bekerja seperti *black-box*: menghap
 
 ## ✨ Fitur Unggulan
 
-### 1. 🛡️ Prinsip Keamanan & Brankas Karantina
+### 1. 🛡️ Prinsip Keamanan, Brankas Karantina & Hapus Langsung
 * **Transparansi Penuh**: Setiap file kandidat pembersihan dilengkapi checkbox individu, ukuran file, tanggal modifikasi, serta alasan rasional mengapa file tersebut disarankan untuk dibersihkan.
-* **Isolasi Brankas Karantina (`.rapih_quarantine`)**: File yang disetujui dipindahkan ke folder karantina terenkripsi metadata `quarantine_index.json`.
-* **1-Klik Restore**: Salah memilih file? Cukup buka tab Karantina dan klik *Restore*, file akan kembali persis ke folder asalnya.
-* **Pembersihan Permanen Bertahap**: File hanya dihapus permanen jika kamu secara sadar memilih opsi *Kosongkan Brankas*.
+* **Dua Pilihan Eksekusi (Tetap Selalu Tanya Aku)**:
+  * **Amankan ke Karantina (`.rapih_quarantine`)**: File dipindahkan ke brankas isolasi lengkap dengan metadata `quarantine_index.json` dan fitur **1-Klik Restore**.
+  * **Hapus Langsung**: Menghapus file yang sudah pasti tidak dibutuhkan langsung dari disk secara permanen setelah melewati dialog konfirmasi eksplisit (tanpa menaruhnya di karantina).
+* **Pembersihan Permanen Bertahap**: File di karantina juga dapat dikosongkan permanen kapan pun melalui tab Karantina.
 
 ### 2. ⚡ Rekomendasi Pembersih Berkecepatan Rust
 * **Temp & Cache Windows**: Memindai file `.tmp`, `.log`, `.bak` lama yang sudah tidak terkunci oleh sistem.

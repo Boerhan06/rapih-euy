@@ -240,37 +240,84 @@ class RecommendationsView extends StatelessWidget {
                       ),
                     ],
                   ),
-                  ElevatedButton.icon(
-                    onPressed: () {
-                      showDialog(
-                        context: context,
-                        builder: (ctx) => QuarantineDialog(
-                          totalCount: state.selectedFilesCount,
-                          totalHumanSize: state.selectedFilesHumanBytes,
-                          onConfirm: () async {
-                            final count = await state.quarantineSelectedFiles();
-                            if (context.mounted) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                  content: Text('$count file berhasil dipindahkan ke Karantina!'),
-                                  backgroundColor: AppTheme.charcoal,
-                                ),
-                              );
-                            }
-                          },
+                  Wrap(
+                    spacing: 10,
+                    runSpacing: 8,
+                    children: [
+                      OutlinedButton.icon(
+                        onPressed: () {
+                          showDialog(
+                            context: context,
+                            builder: (ctx) => QuarantineDialog(
+                              totalCount: state.selectedFilesCount,
+                              totalHumanSize: state.selectedFilesHumanBytes,
+                              isDirectDelete: true,
+                              onConfirm: () async {
+                                final res = await state.deleteSelectedFilesDirectly();
+                                if (context.mounted) {
+                                  final skippedNote = res.skippedCount > 0
+                                      ? ' (${res.skippedCount} dilewati karena terkunci sistem)'
+                                      : '';
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text(
+                                        '${res.deletedCount} file dihapus langsung (${res.humanFreed} dibebaskan)$skippedNote',
+                                      ),
+                                      backgroundColor: Colors.red.shade700,
+                                    ),
+                                  );
+                                }
+                              },
+                            ),
+                          );
+                        },
+                        icon: Icon(Icons.delete_forever_outlined, size: 18, color: Colors.red.shade700),
+                        label: Text(
+                          'Hapus Langsung',
+                          style: TextStyle(color: Colors.red.shade700, fontWeight: FontWeight.w600),
                         ),
-                      );
-                    },
-                    icon: const Icon(Icons.shield_outlined, size: 18),
-                    label: const Text('Amankan ke Karantina'),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppTheme.charcoal,
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(22),
+                        style: OutlinedButton.styleFrom(
+                          side: BorderSide(color: Colors.red.shade200),
+                          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(22),
+                          ),
+                        ),
                       ),
-                    ),
+                      ElevatedButton.icon(
+                        onPressed: () {
+                          showDialog(
+                            context: context,
+                            builder: (ctx) => QuarantineDialog(
+                              totalCount: state.selectedFilesCount,
+                              totalHumanSize: state.selectedFilesHumanBytes,
+                              isDirectDelete: false,
+                              onConfirm: () async {
+                                final count = await state.quarantineSelectedFiles();
+                                if (context.mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text('$count file berhasil dipindahkan ke Karantina!'),
+                                      backgroundColor: AppTheme.charcoal,
+                                    ),
+                                  );
+                                }
+                              },
+                            ),
+                          );
+                        },
+                        icon: const Icon(Icons.shield_outlined, size: 18),
+                        label: const Text('Amankan ke Karantina'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppTheme.charcoal,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(22),
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ),

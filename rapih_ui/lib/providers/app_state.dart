@@ -190,12 +190,42 @@ class AppState extends ChangeNotifier {
     final paths = selected.map((f) => f.path).toList();
     await _engine.quarantineFiles(paths);
 
-    // Remove from active candidates
     _scanResult!.items.removeWhere((f) => f.isSelected);
     await refreshQuarantine();
     await refreshDiskStats();
     notifyListeners();
     return selected.length;
+  }
+
+  Future<DirectDeleteResult> deleteSelectedFilesDirectly() async {
+    if (_scanResult == null) {
+      return DirectDeleteResult(
+        deletedCount: 0,
+        skippedCount: 0,
+        freedBytes: 0,
+        humanFreed: '0 B',
+        deletedPaths: [],
+      );
+    }
+    final selected = _scanResult!.items.where((f) => f.isSelected).toList();
+    if (selected.isEmpty) {
+      return DirectDeleteResult(
+        deletedCount: 0,
+        skippedCount: 0,
+        freedBytes: 0,
+        humanFreed: '0 B',
+        deletedPaths: [],
+      );
+    }
+
+    final paths = selected.map((f) => f.path).toList();
+    final result = await _engine.deleteFilesDirectly(paths);
+    final deletedSet = result.deletedPaths.toSet();
+    _scanResult!.items.removeWhere((f) => deletedSet.contains(f.path));
+
+    await refreshDiskStats();
+    notifyListeners();
+    return result;
   }
 
   Future<int> executeOrganize() async {

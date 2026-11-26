@@ -110,6 +110,11 @@ class RustEngineService {
     return data as int? ?? ids.length;
   }
 
+  Future<DirectDeleteResult> deleteFilesDirectly(List<String> files) async {
+    final data = await _callMethod('delete_files', {'files': files});
+    return DirectDeleteResult.fromJson(data as Map<String, dynamic>);
+  }
+
   // Fallback demo data only used when engine binary/server is unavailable
   dynamic _mockResponse(String method, [Map<String, dynamic>? params]) {
     switch (method) {
@@ -135,6 +140,15 @@ class RustEngineService {
         return {'entries': [], 'total_size_bytes': 0, 'human_total_size': '0 B'};
       case 'quarantine_files':
         return [];
+      case 'delete_files':
+        final files = (params?['files'] as List<dynamic>?) ?? [];
+        return {
+          'deleted_count': files.length,
+          'skipped_count': 0,
+          'freed_bytes': 0,
+          'human_freed': '0 B',
+          'deleted_paths': files,
+        };
       case 'restore_files':
       case 'purge_files':
       case 'execute_organize':

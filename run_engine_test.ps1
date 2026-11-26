@@ -58,6 +58,11 @@ $recResult = & $engineExe --cmd scan_recommendations $sandboxFull
 Write-Host "`nHasil Scan Rekomendasi (termasuk deteksi duplikat & folder kosong):" -ForegroundColor Gray
 Write-Host $recResult
 
+$delFile = (Resolve-Path "$sandbox\debug.tmp").Path
+$delResult = & $engineExe --cmd delete_files $delFile
+Write-Host "`nHasil Uji Hapus Langsung (delete_files):" -ForegroundColor Gray
+Write-Host $delResult
+
 # Bersihkan sandbox sementara
 Remove-Item $sandbox -Recurse -Force -ErrorAction SilentlyContinue
 

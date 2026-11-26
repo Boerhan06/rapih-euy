@@ -120,6 +120,15 @@ fn dispatch_rpc(method: &str, params: Option<serde_json::Value>) -> Result<serde
             let count = QuarantineManager::purge_files(&ids).map_err(|e| e.to_string())?;
             serde_json::to_value(count).map_err(|e| e.to_string())
         }
+        "delete_files" => {
+            let files = params
+                .and_then(|p| p.get("files").cloned())
+                .and_then(|v| serde_json::from_value::<Vec<String>>(v).ok())
+                .ok_or_else(|| "Missing 'files' parameter".to_string())?;
+
+            let result = QuarantineManager::delete_files_directly(&files);
+            serde_json::to_value(result).map_err(|e| e.to_string())
+        }
         unknown => Err(format!("Unknown method: {}", unknown)),
     }
 }
@@ -147,9 +156,19 @@ fn handle_cli_command(cmd: &str, payload: Option<&str>) {
         ("execute_organize", Some(p)) => serde_json::from_str::<serde_json::Value>(p)
             .ok()
             .map(|v| if v.is_array() { serde_json::json!({ "items": v }) } else { v }),
-        ("quarantine_files", Some(p)) => serde_json::from_str::<serde_json::Value>(p)
-            .ok()
-            .map(|v| if v.is_array() { serde_json::json!({ "files": v }) } else { v }),
+        ("quarantine_files" | "delete_files", Some(p)) => Some(
+            serde_json::from_str::<serde_json::Value>(p)
+                .map(|v| {
+                    if v.is_array() {
+                        serde_json::json!({ "files": v })
+                    } else if v.is_string() {
+                        serde_json::json!({ "files": [v] })
+                    } else {
+                        v
+                    }
+                })
+                .unwrap_or_else(|_| serde_json::json!({ "files": [p] })),
+        ),
         ("restore_files" | "purge_files", Some(p)) => serde_json::from_str::<serde_json::Value>(p)
             .ok()
             .map(|v| if v.is_array() { serde_json::json!({ "ids": v }) } else { v }),

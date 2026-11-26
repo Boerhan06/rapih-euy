@@ -1,4 +1,4 @@
-use crate::models::{format_bytes, QuarantineEntry, QuarantineIndex};
+use crate::models::{format_bytes, DirectDeleteResult, QuarantineEntry, QuarantineIndex};
 use crate::scanner::Scanner;
 use chrono::Utc;
 use std::fs;
@@ -189,5 +189,43 @@ impl QuarantineManager {
 
         Self::save_index(&index)?;
         Ok(purged_count)
+    }
+
+    pub fn delete_files_directly(file_paths: &[String]) -> DirectDeleteResult {
+        let mut deleted_count = 0;
+        let mut skipped_count = 0;
+        let mut freed_bytes = 0u64;
+        let mut deleted_paths = Vec::new();
+
+        for file_path_str in file_paths {
+            let target = Path::new(file_path_str);
+            if !target.exists() {
+                skipped_count += 1;
+                continue;
+            }
+
+            let size = target.metadata().map(|m| m.len()).unwrap_or(0);
+            let remove_result = if target.is_dir() {
+                fs::remove_dir_all(target)
+            } else {
+                fs::remove_file(target)
+            };
+
+            if remove_result.is_ok() {
+                deleted_count += 1;
+                freed_bytes += size;
+                deleted_paths.push(file_path_str.clone());
+            } else {
+                skipped_count += 1;
+            }
+        }
+
+        DirectDeleteResult {
+            deleted_count,
+            skipped_count,
+            freed_bytes,
+            human_freed: format_bytes(freed_bytes),
+            deleted_paths,
+        }
     }
 }

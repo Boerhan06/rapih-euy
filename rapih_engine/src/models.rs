@@ -90,6 +90,15 @@ pub struct DiskStats {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct DirectDeleteResult {
+    pub deleted_count: usize,
+    pub skipped_count: usize,
+    pub freed_bytes: u64,
+    pub human_freed: String,
+    pub deleted_paths: Vec<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ApiResponse<T> {
     pub success: bool,
     pub message: String,

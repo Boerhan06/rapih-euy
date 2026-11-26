@@ -302,3 +302,31 @@ class DiskStats {
     );
   }
 }
+
+class DirectDeleteResult {
+  final int deletedCount;
+  final int skippedCount;
+  final int freedBytes;
+  final String humanFreed;
+  final List<String> deletedPaths;
+
+  DirectDeleteResult({
+    required this.deletedCount,
+    required this.skippedCount,
+    required this.freedBytes,
+    required this.humanFreed,
+    required this.deletedPaths,
+  });
+
+  factory DirectDeleteResult.fromJson(Map<String, dynamic> json) {
+    return DirectDeleteResult(
+      deletedCount: (json['deleted_count'] as num).toInt(),
+      skippedCount: (json['skipped_count'] as num).toInt(),
+      freedBytes: (json['freed_bytes'] as num).toInt(),
+      humanFreed: json['human_freed'] as String,
+      deletedPaths: (json['deleted_paths'] as List<dynamic>)
+          .map((e) => e as String)
+          .toList(),
+    );
+  }
+}

@@ -4,17 +4,28 @@ import '../theme/app_theme.dart';
 class QuarantineDialog extends StatelessWidget {
   final int totalCount;
   final String totalHumanSize;
+  final bool isDirectDelete;
   final VoidCallback onConfirm;
 
   const QuarantineDialog({
     super.key,
     required this.totalCount,
     required this.totalHumanSize,
+    this.isDirectDelete = false,
     required this.onConfirm,
   });
 
   @override
   Widget build(BuildContext context) {
+    final badgeBg = isDirectDelete ? AppTheme.peachPastel : AppTheme.matchaPastel;
+    final badgeIconColor = isDirectDelete ? Colors.red.shade700 : AppTheme.matchaDark;
+    final title = isDirectDelete ? 'Konfirmasi Hapus Permanen' : 'Konfirmasi Karantina';
+    final infoText = isDirectDelete
+        ? 'PERHATIAN: Kamu akan menghapus $totalCount file ($totalHumanSize) secara permanen langsung dari disk. File yang dihapus tidak dapat di-restore!'
+        : 'Kamu akan mengamankan $totalCount file ($totalHumanSize) ke Karantina. File TIDAK langsung dihapus permanen dan bisa di-restore kapan saja.';
+    final buttonLabel = isDirectDelete ? 'Hapus Permanen Sekarang' : 'Pindahkan ke Karantina';
+    final buttonColor = isDirectDelete ? Colors.red.shade700 : AppTheme.charcoal;
+
     return Dialog(
       backgroundColor: AppTheme.surface,
       shape: RoundedRectangleBorder(
@@ -27,36 +38,35 @@ class QuarantineDialog extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Icon & Title
             Row(
               children: [
                 Container(
                   width: 48,
                   height: 48,
                   decoration: BoxDecoration(
-                    color: AppTheme.matchaPastel,
+                    color: badgeBg,
                     borderRadius: BorderRadius.circular(16),
                   ),
-                  child: const Icon(
-                    Icons.shield_outlined,
-                    color: AppTheme.matchaDark,
+                  child: Icon(
+                    isDirectDelete ? Icons.delete_forever_outlined : Icons.shield_outlined,
+                    color: badgeIconColor,
                     size: 26,
                   ),
                 ),
                 const SizedBox(width: 14),
-                const Expanded(
+                Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Konfirmasi Karantina',
-                        style: TextStyle(
+                        title,
+                        style: const TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.w700,
                           color: AppTheme.textPrimary,
                         ),
                       ),
-                      Text(
+                      const Text(
                         'Selalu tanya sebelum bertindak',
                         style: TextStyle(
                           fontSize: 12,
@@ -71,20 +81,26 @@ class QuarantineDialog extends StatelessWidget {
 
             const SizedBox(height: 20),
 
-            // Highlight Box
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: AppTheme.surfaceOatmeal,
+                color: isDirectDelete
+                    ? AppTheme.peachPastel.withValues(alpha: 0.45)
+                    : AppTheme.surfaceOatmeal,
                 borderRadius: BorderRadius.circular(18),
               ),
               child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Icon(Icons.info_outline, color: AppTheme.charcoal, size: 20),
+                  Icon(
+                    isDirectDelete ? Icons.warning_amber_rounded : Icons.info_outline,
+                    color: isDirectDelete ? Colors.red.shade700 : AppTheme.charcoal,
+                    size: 20,
+                  ),
                   const SizedBox(width: 12),
                   Expanded(
                     child: Text(
-                      'Kamu akan mengamankan $totalCount file ($totalHumanSize) ke Karantina. File TIDAK langsung dihapus permanen dan bisa di-restore kapan saja.',
+                      infoText,
                       style: const TextStyle(
                         fontSize: 13,
                         color: AppTheme.textPrimary,
@@ -98,7 +114,6 @@ class QuarantineDialog extends StatelessWidget {
 
             const SizedBox(height: 24),
 
-            // Actions
             Row(
               mainAxisAlignment: MainAxisAlignment.end,
               children: [
@@ -120,7 +135,7 @@ class QuarantineDialog extends StatelessWidget {
                     onConfirm();
                   },
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: AppTheme.charcoal,
+                    backgroundColor: buttonColor,
                     foregroundColor: Colors.white,
                     elevation: 0,
                     padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
@@ -128,7 +143,7 @@ class QuarantineDialog extends StatelessWidget {
                       borderRadius: BorderRadius.circular(20),
                     ),
                   ),
-                  child: const Text('Pindahkan ke Karantina'),
+                  child: Text(buttonLabel),
                 ),
               ],
             ),
