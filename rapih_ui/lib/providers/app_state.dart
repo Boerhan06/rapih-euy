@@ -35,8 +35,21 @@ class AppState extends ChangeNotifier {
   String _searchQuery = '';
   String get searchQuery => _searchQuery;
 
-  AppState() {
-    init();
+  bool get isEngineLive => _engine.isLive;
+
+  String _organizeTarget = 'downloads';
+  String get organizeTarget => _organizeTarget;
+
+  AppState({bool autoInit = true}) {
+    if (autoInit) {
+      init();
+    }
+  }
+
+  @override
+  void dispose() {
+    _engine.dispose();
+    super.dispose();
   }
 
   Future<void> init() async {
@@ -89,11 +102,14 @@ class AppState extends ChangeNotifier {
   }
 
   Future<void> scanOrganizer([String? customPath]) async {
+    if (customPath != null && customPath.trim().isNotEmpty) {
+      _organizeTarget = customPath.trim();
+    }
     _isOrganizing = true;
     notifyListeners();
 
     try {
-      _organizeResult = await _engine.scanOrganizer(path: customPath);
+      _organizeResult = await _engine.scanOrganizer(path: _organizeTarget);
     } catch (_) {}
 
     _isOrganizing = false;

@@ -4,8 +4,21 @@ import '../models/engine_models.dart';
 import '../providers/app_state.dart';
 import '../theme/app_theme.dart';
 
-class OrganizerView extends StatelessWidget {
+class OrganizerView extends StatefulWidget {
   const OrganizerView({super.key});
+
+  @override
+  State<OrganizerView> createState() => _OrganizerViewState();
+}
+
+class _OrganizerViewState extends State<OrganizerView> {
+  final TextEditingController _customPathController = TextEditingController();
+
+  @override
+  void dispose() {
+    _customPathController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -21,49 +34,97 @@ class OrganizerView extends StatelessWidget {
             color: AppTheme.surface,
             border: Border(bottom: BorderSide(color: AppTheme.borderLight)),
           ),
-          child: Row(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: const [
-                    Text(
-                      'Smart Auto-Organizer',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w700,
-                        color: AppTheme.textPrimary,
-                      ),
+              Row(
+                children: [
+                  const Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Smart Auto-Organizer',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.w700,
+                            color: AppTheme.textPrimary,
+                          ),
+                        ),
+                        SizedBox(height: 4),
+                        Text(
+                          'Otomatis kelompokkan file acak ke subfolder Dokumen, Gambar, Setup, dan Arsip.',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: AppTheme.textSecondary,
+                          ),
+                        ),
+                      ],
                     ),
-                    SizedBox(height: 4),
-                    Text(
-                      'Otomatis kelompokkan file acak ke subfolder Dokumen, Gambar, Setup, dan Arsip.',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: AppTheme.textSecondary,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              ElevatedButton.icon(
-                onPressed: state.isOrganizing ? null : () => state.scanOrganizer(),
-                icon: state.isOrganizing
-                    ? const SizedBox(
-                        width: 16,
-                        height: 16,
-                        child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
-                      )
-                    : const Icon(Icons.folder_copy_outlined, size: 18),
-                label: Text(state.isOrganizing ? 'Menganalisis...' : 'Analisis Downloads'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppTheme.charcoal,
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(22),
                   ),
-                ),
+                  ElevatedButton.icon(
+                    onPressed: state.isOrganizing
+                        ? null
+                        : () {
+                            final custom = _customPathController.text.trim();
+                            state.scanOrganizer(custom.isNotEmpty ? custom : state.organizeTarget);
+                          },
+                    icon: state.isOrganizing
+                        ? const SizedBox(
+                            width: 16,
+                            height: 16,
+                            child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                          )
+                        : const Icon(Icons.folder_copy_outlined, size: 18),
+                    label: Text(state.isOrganizing ? 'Menganalisis...' : 'Analisis Folder'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppTheme.charcoal,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(22),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 14),
+              // Quick folder selector + custom path input
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                crossAxisAlignment: WrapCrossAlignment.center,
+                children: [
+                  _buildFolderPill(state, 'downloads', 'Downloads'),
+                  _buildFolderPill(state, 'desktop', 'Desktop'),
+                  _buildFolderPill(state, 'documents', 'Documents'),
+                  ConstrainedBox(
+                    constraints: const BoxConstraints(minWidth: 220, maxWidth: 360),
+                    child: Container(
+                      height: 38,
+                      decoration: BoxDecoration(
+                        color: AppTheme.background,
+                        borderRadius: BorderRadius.circular(19),
+                      ),
+                      child: TextField(
+                        controller: _customPathController,
+                        style: const TextStyle(fontSize: 12),
+                        decoration: const InputDecoration(
+                          hintText: 'Atau ketik path folder kustom (mis: D:\\Downloads)...',
+                          hintStyle: TextStyle(fontSize: 12, color: AppTheme.textMuted),
+                          prefixIcon: Icon(Icons.folder_open, size: 16, color: AppTheme.textSecondary),
+                          border: InputBorder.none,
+                          contentPadding: EdgeInsets.symmetric(vertical: 10),
+                        ),
+                        onSubmitted: (val) {
+                          if (val.trim().isNotEmpty) {
+                            state.scanOrganizer(val.trim());
+                          }
+                        },
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ],
           ),
@@ -79,7 +140,7 @@ class OrganizerView extends StatelessWidget {
                       Container(
                         width: 72,
                         height: 72,
-                        decoration: BoxDecoration(
+                        decoration: const BoxDecoration(
                           color: AppTheme.surfaceOatmeal,
                           shape: BoxShape.circle,
                         ),
@@ -96,7 +157,7 @@ class OrganizerView extends StatelessWidget {
                       ),
                       const SizedBox(height: 6),
                       const Text(
-                        'Klik "Analisis Downloads" untuk melihat simulasi perapihan file.',
+                        'Pilih folder lalu klik "Analisis Folder" untuk melihat simulasi perapihan file.',
                         style: TextStyle(
                           fontSize: 13,
                           color: AppTheme.textSecondary,
@@ -123,7 +184,7 @@ class OrganizerView extends StatelessWidget {
               color: AppTheme.surface,
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.04),
+                  color: Colors.black.withValues(alpha: 0.04),
                   blurRadius: 10,
                   offset: const Offset(0, -4),
                 ),
@@ -170,6 +231,32 @@ class OrganizerView extends StatelessWidget {
     );
   }
 
+  Widget _buildFolderPill(AppState state, String key, String label) {
+    final isSelected = state.organizeTarget == key && _customPathController.text.trim().isEmpty;
+    return InkWell(
+      onTap: () {
+        _customPathController.clear();
+        state.scanOrganizer(key);
+      },
+      borderRadius: BorderRadius.circular(18),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+        decoration: BoxDecoration(
+          color: isSelected ? AppTheme.matchaPastel : AppTheme.surfaceOatmeal,
+          borderRadius: BorderRadius.circular(18),
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.w600,
+            color: isSelected ? AppTheme.matchaDark : AppTheme.textPrimary,
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget _buildOrganizeCard(BuildContext context, OrganizePlanItem item, AppState state) {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
@@ -179,7 +266,7 @@ class OrganizerView extends StatelessWidget {
         borderRadius: BorderRadius.circular(22),
         border: Border.all(
           color: item.isSelected
-              ? AppTheme.charcoal.withOpacity(0.25)
+              ? AppTheme.charcoal.withValues(alpha: 0.25)
               : AppTheme.borderLight,
         ),
       ),

@@ -8,12 +8,15 @@ void main() {
     await tester.pumpWidget(
       MultiProvider(
         providers: [
-          ChangeNotifierProvider(create: (_) => AppState()),
+          ChangeNotifierProvider(create: (_) => AppState(autoInit: false)),
         ],
         child: const RapihEuyApp(),
       ),
     );
 
     expect(find.byType(RapihEuyApp), findsOneWidget);
+    expect(find.text('Rekomendasi Bersih'), findsOneWidget);
+    expect(find.text('Smart Auto-Rapih'), findsOneWidget);
+    expect(find.text('Karantina / Vault'), findsOneWidget);
   });
 }

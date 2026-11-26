@@ -31,61 +31,70 @@ class MainLayout extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Disk Summary Card (Styled like Mockup top card)
-                const DiskSummaryCard(),
+                Expanded(
+                  child: SingleChildScrollView(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Disk Summary Card (Styled like Mockup top card)
+                        const DiskSummaryCard(),
 
-                const SizedBox(height: 24),
+                        const SizedBox(height: 24),
 
-                const Text(
-                  'MENU UTAMA',
-                  style: TextStyle(
-                    fontSize: 11,
-                    letterSpacing: 1.2,
-                    fontWeight: FontWeight.w700,
-                    color: AppTheme.textMuted,
+                        const Text(
+                          'MENU UTAMA',
+                          style: TextStyle(
+                            fontSize: 11,
+                            letterSpacing: 1.2,
+                            fontWeight: FontWeight.w700,
+                            color: AppTheme.textMuted,
+                          ),
+                        ),
+
+                        const SizedBox(height: 12),
+
+                        // Navigation Pill Items
+                        _buildNavItem(
+                          context,
+                          index: 0,
+                          icon: Icons.cleaning_services_outlined,
+                          activeIcon: Icons.cleaning_services_rounded,
+                          title: 'Rekomendasi Bersih',
+                          badgeCount: state.scanResult?.totalCandidates,
+                          isActive: state.currentNavIndex == 0,
+                          onTap: () => state.setNavIndex(0),
+                        ),
+
+                        const SizedBox(height: 8),
+
+                        _buildNavItem(
+                          context,
+                          index: 1,
+                          icon: Icons.auto_awesome_mosaic_outlined,
+                          activeIcon: Icons.auto_awesome_mosaic_rounded,
+                          title: 'Smart Auto-Rapih',
+                          isActive: state.currentNavIndex == 1,
+                          onTap: () => state.setNavIndex(1),
+                        ),
+
+                        const SizedBox(height: 8),
+
+                        _buildNavItem(
+                          context,
+                          index: 2,
+                          icon: Icons.shield_outlined,
+                          activeIcon: Icons.shield_rounded,
+                          title: 'Karantina / Vault',
+                          badgeCount: state.quarantineIndex?.entries.length,
+                          isActive: state.currentNavIndex == 2,
+                          onTap: () => state.setNavIndex(2),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
 
                 const SizedBox(height: 12),
-
-                // Navigation Pill Items
-                _buildNavItem(
-                  context,
-                  index: 0,
-                  icon: Icons.cleaning_services_outlined,
-                  activeIcon: Icons.cleaning_services_rounded,
-                  title: 'Rekomendasi Bersih',
-                  badgeCount: state.scanResult?.totalCandidates,
-                  isActive: state.currentNavIndex == 0,
-                  onTap: () => state.setNavIndex(0),
-                ),
-
-                const SizedBox(height: 8),
-
-                _buildNavItem(
-                  context,
-                  index: 1,
-                  icon: Icons.auto_awesome_mosaic_outlined,
-                  activeIcon: Icons.auto_awesome_mosaic_rounded,
-                  title: 'Smart Auto-Rapih',
-                  isActive: state.currentNavIndex == 1,
-                  onTap: () => state.setNavIndex(1),
-                ),
-
-                const SizedBox(height: 8),
-
-                _buildNavItem(
-                  context,
-                  index: 2,
-                  icon: Icons.shield_outlined,
-                  activeIcon: Icons.shield_rounded,
-                  title: 'Karantina / Vault',
-                  badgeCount: state.quarantineIndex?.entries.length,
-                  isActive: state.currentNavIndex == 2,
-                  onTap: () => state.setNavIndex(2),
-                ),
-
-                const Spacer(),
 
                 // Bottom Engine Status Badge
                 Container(
@@ -100,16 +109,20 @@ class MainLayout extends StatelessWidget {
                       Container(
                         width: 8,
                         height: 8,
-                        decoration: const BoxDecoration(
-                          color: Color(0xFF22C55E), // Green dot
+                        decoration: BoxDecoration(
+                          color: state.isEngineLive
+                              ? const Color(0xFF22C55E)
+                              : const Color(0xFFF59E0B),
                           shape: BoxShape.circle,
                         ),
                       ),
                       const SizedBox(width: 8),
-                      const Expanded(
+                      Expanded(
                         child: Text(
-                          'Rust Backend Engine Aktif',
-                          style: TextStyle(
+                          state.isEngineLive
+                              ? 'Rust Backend Engine Aktif'
+                              : 'Mode Preview (Demo Data)',
+                          style: const TextStyle(
                             fontSize: 11,
                             fontWeight: FontWeight.w600,
                             color: AppTheme.textSecondary,

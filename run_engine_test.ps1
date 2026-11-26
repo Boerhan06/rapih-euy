@@ -1,22 +1,20 @@
 # Skrip Pengujian Mandiri Rapih Euy Rust Engine
 
 $ErrorActionPreference = "Stop"
-$cargoPath = "$env:USERPROFILE\.cargo\bin\cargo.exe"
 
 Write-Host "==========================================" -ForegroundColor Cyan
 Write-Host "  Pengujian Mandiri Backend Rapih Euy     " -ForegroundColor Cyan
 Write-Host "==========================================" -ForegroundColor Cyan
 
-# 1. Pastikan build engine selesai
+# 1. Pastikan build engine selesai via build-engine.mjs (otomatis deteksi MSVC/GNU)
 Write-Host "`n[1/4] Mengompilasi rapih_engine..." -ForegroundColor Yellow
-Push-Location "rapih_engine"
-try {
-    & $cargoPath build
-} finally {
-    Pop-Location
+node scripts/build-engine.mjs
+if ($LASTEXITCODE -ne 0) {
+    Write-Error "Kompilasi rapih_engine gagal!"
+    exit 1
 }
 
-$engineExe = "rapih_engine\target\debug\rapih_engine.exe"
+$engineExe = "rapih_engine\target\release\rapih_engine.exe"
 if (-not (Test-Path $engineExe)) {
     Write-Error "Binary rapih_engine.exe tidak ditemukan!"
     exit 1
@@ -49,11 +47,19 @@ $diskOutput = & $engineExe --cmd disk_info
 Write-Host "Hasil disk_info:" -ForegroundColor Gray
 Write-Host $diskOutput
 
-# 4. Uji Coba Auto-Organizer
-Write-Host "`n[4/4] Menguji Smart Auto-Organizer di folder sandbox..." -ForegroundColor Yellow
-$organizePlan = & $engineExe --cmd scan_organizer (Resolve-Path $sandbox).Path
+# 4. Uji Coba Auto-Organizer & Rekomendasi di sandbox
+Write-Host "`n[4/4] Menguji Smart Auto-Organizer & Scanner di folder sandbox..." -ForegroundColor Yellow
+$sandboxFull = (Resolve-Path $sandbox).Path
+$organizePlan = & $engineExe --cmd scan_organizer $sandboxFull
 Write-Host "Hasil Rencana Auto-Organizer:" -ForegroundColor Gray
 Write-Host $organizePlan
+
+$recResult = & $engineExe --cmd scan_recommendations $sandboxFull
+Write-Host "`nHasil Scan Rekomendasi (termasuk deteksi duplikat & folder kosong):" -ForegroundColor Gray
+Write-Host $recResult
+
+# Bersihkan sandbox sementara
+Remove-Item $sandbox -Recurse -Force -ErrorAction SilentlyContinue
 
 Write-Host "`n==========================================" -ForegroundColor Green
 Write-Host "  Semua Pengujian Berhasil Berjalan!      " -ForegroundColor Green

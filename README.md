@@ -155,27 +155,36 @@ rapih-euy/
 
 ## 🚀 Memulai & Menjalankan
 
+### Cara Tercepat (Satu Perintah dari Root Proyek)
+Cukup jalankan dari root folder `rapih-euy`:
+```powershell
+npm run dev
+```
+Perintah ini otomatis:
+1. Mengompilasi backend Rust (`rapih_engine.exe`) dalam mode `--release`.
+2. Menjalankan Rust engine server (`http://127.0.0.1:8787`) untuk akses langsung ke filesystem Windows.
+3. Mendeteksi kesiapan toolchain: menjalankan **`flutter run -d windows`** jika Visual Studio C++ tersedia, atau otomatis membuka UI Flutter melalui **Chrome Live Bridge** yang terhubung langsung ke backend Rust!
+
 ### Prasyarat
 1. **Windows 10 / 11**
-2. **Rust Toolchain** (`cargo` & `rustc`)
-3. **Flutter SDK** (`>= 3.2.0`)
+2. **Node.js** (untuk menjalankan `npm run dev`)
+3. **Rust Toolchain** (`cargo` & `rustc`)
+4. **Flutter SDK** (`>= 3.2.0`)
+5. *(Opsional untuk native `.exe` Windows)* Visual Studio 2022 **Desktop development with C++**
 
-### 1. Uji Coba Backend Engine Rust
-Jalankan skrip sandbox otomatis untuk memverifikasi kemampuan deteksi, pembacaan ruang disk, dan fungsi Auto-Organizer:
+### Perintah Tambahan
 ```powershell
-powershell -ExecutionPolicy Bypass -File .\run_engine_test.ps1
-```
-Atau kompilasi binary langsung:
-```powershell
-cd rapih_engine
-cargo build --release
-```
+# Uji coba backend Rust di folder sandbox
+npm run test:engine
 
-### 2. Menjalankan Flutter Desktop UI
-```powershell
-cd rapih_ui
-flutter pub get
-flutter run -d windows
+# Kompilasi backend Rust secara terpisah
+npm run build:engine
+
+# Paksa jalankan mode native Windows Desktop (butuh VS C++)
+npm run dev:windows
+
+# Analisis kode Flutter
+npm run analyze
 ```
 
 ---

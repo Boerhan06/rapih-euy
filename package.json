@@ -1,0 +1,14 @@
+{
+  "name": "rapih-euy",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Rapih Euy - Aesthetic File Organizer, Smart Disk Cleaner & Quarantine Vault (Rust + Flutter)",
+  "scripts": {
+    "dev": "node scripts/dev.mjs",
+    "dev:windows": "node scripts/dev.mjs --windows",
+    "dev:web": "node scripts/dev.mjs --web",
+    "build:engine": "node scripts/build-engine.mjs",
+    "test:engine": "powershell -ExecutionPolicy Bypass -File ./run_engine_test.ps1",
+    "analyze": "cd rapih_ui && flutter analyze --no-fatal-infos"
+  }
+}

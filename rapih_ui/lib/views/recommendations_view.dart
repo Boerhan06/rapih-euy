@@ -119,20 +119,23 @@ class RecommendationsView extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
           child: Row(
             children: [
-              Text(
-                'Ditemukan ${files.length} kandidat file',
-                style: const TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w600,
-                  color: AppTheme.textSecondary,
+              Expanded(
+                child: Text(
+                  'Ditemukan ${files.length} kandidat file',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: AppTheme.textSecondary,
+                  ),
                 ),
               ),
-              const Spacer(),
               TextButton(
                 onPressed: () => state.toggleAllFileSelection(true),
                 child: const Text('Pilih Semua'),
               ),
-              const SizedBox(width: 8),
+              const SizedBox(width: 4),
               TextButton(
                 onPressed: () => state.toggleAllFileSelection(false),
                 child: const Text('Batal Pilih'),
@@ -208,63 +211,69 @@ class RecommendationsView extends StatelessWidget {
                 ),
               ],
             ),
-            child: Row(
-              children: [
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      '${state.selectedFilesCount} file terpilih',
-                      style: const TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w700,
-                        color: AppTheme.textPrimary,
+            child: SizedBox(
+              width: double.infinity,
+              child: Wrap(
+                alignment: WrapAlignment.spaceBetween,
+                crossAxisAlignment: WrapCrossAlignment.center,
+                spacing: 12,
+                runSpacing: 10,
+                children: [
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        '${state.selectedFilesCount} file terpilih',
+                        style: const TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w700,
+                          color: AppTheme.textPrimary,
+                        ),
                       ),
-                    ),
-                    Text(
-                      'Bisa bebaskan: ${state.selectedFilesHumanBytes}',
-                      style: const TextStyle(
-                        fontSize: 12,
-                        color: AppTheme.matchaDark,
-                        fontWeight: FontWeight.w600,
+                      Text(
+                        'Bisa bebaskan: ${state.selectedFilesHumanBytes}',
+                        style: const TextStyle(
+                          fontSize: 12,
+                          color: AppTheme.matchaDark,
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
-                    ),
-                  ],
-                ),
-                const Spacer(),
-                ElevatedButton.icon(
-                  onPressed: () {
-                    showDialog(
-                      context: context,
-                      builder: (ctx) => QuarantineDialog(
-                        totalCount: state.selectedFilesCount,
-                        totalHumanSize: state.selectedFilesHumanBytes,
-                        onConfirm: () async {
-                          final count = await state.quarantineSelectedFiles();
-                          if (context.mounted) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                content: Text('$count file berhasil dipindahkan ke Karantina!'),
-                                backgroundColor: AppTheme.charcoal,
-                              ),
-                            );
-                          }
-                        },
+                    ],
+                  ),
+                  ElevatedButton.icon(
+                    onPressed: () {
+                      showDialog(
+                        context: context,
+                        builder: (ctx) => QuarantineDialog(
+                          totalCount: state.selectedFilesCount,
+                          totalHumanSize: state.selectedFilesHumanBytes,
+                          onConfirm: () async {
+                            final count = await state.quarantineSelectedFiles();
+                            if (context.mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text('$count file berhasil dipindahkan ke Karantina!'),
+                                  backgroundColor: AppTheme.charcoal,
+                                ),
+                              );
+                            }
+                          },
+                        ),
+                      );
+                    },
+                    icon: const Icon(Icons.shield_outlined, size: 18),
+                    label: const Text('Amankan ke Karantina'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppTheme.charcoal,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(22),
                       ),
-                    );
-                  },
-                  icon: const Icon(Icons.shield_outlined, size: 18),
-                  label: const Text('Amankan ke Karantina'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppTheme.charcoal,
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(22),
                     ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
       ],

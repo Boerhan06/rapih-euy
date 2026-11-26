@@ -119,82 +119,93 @@ class QuarantineView extends StatelessWidget {
                 ),
               ],
             ),
-            child: Row(
-              children: [
-                Text(
-                  '${entries.where((e) => e.isSelected).length} file dipilih',
-                  style: const TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w700,
-                    color: AppTheme.textPrimary,
-                  ),
-                ),
-                const Spacer(),
-                OutlinedButton.icon(
-                  onPressed: () async {
-                    final count = await state.restoreSelectedQuarantine();
-                    if (context.mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text('$count file berhasil dikembalikan ke lokasi aslinya!'),
-                          backgroundColor: AppTheme.matchaDark,
-                        ),
-                      );
-                    }
-                  },
-                  icon: const Icon(Icons.restore_page_outlined, size: 18),
-                  label: const Text('Restore ke Lokasi Asli'),
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: AppTheme.textPrimary,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(20),
+            child: SizedBox(
+              width: double.infinity,
+              child: Wrap(
+                alignment: WrapAlignment.spaceBetween,
+                crossAxisAlignment: WrapCrossAlignment.center,
+                spacing: 12,
+                runSpacing: 12,
+                children: [
+                  Text(
+                    '${entries.where((e) => e.isSelected).length} file dipilih',
+                    style: const TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w700,
+                      color: AppTheme.textPrimary,
                     ),
                   ),
-                ),
-                const SizedBox(width: 12),
-                ElevatedButton.icon(
-                  onPressed: () async {
-                    final confirm = await showDialog<bool>(
-                      context: context,
-                      builder: (ctx) => AlertDialog(
-                        title: const Text('Hapus Permanen?'),
-                        content: const Text(
-                          'Tindakan ini akan menghapus file dari disk secara permanen dan tidak dapat dikembalikan lagi.',
-                        ),
-                        actions: [
-                          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Batal')),
-                          ElevatedButton(
-                            onPressed: () => Navigator.pop(ctx, true),
-                            style: ElevatedButton.styleFrom(backgroundColor: Colors.red.shade700, foregroundColor: Colors.white),
-                            child: const Text('Hapus Permanen'),
+                  Wrap(
+                    spacing: 10,
+                    runSpacing: 8,
+                    children: [
+                      OutlinedButton.icon(
+                        onPressed: () async {
+                          final count = await state.restoreSelectedQuarantine();
+                          if (context.mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text('$count file berhasil dikembalikan ke lokasi aslinya!'),
+                                backgroundColor: AppTheme.matchaDark,
+                              ),
+                            );
+                          }
+                        },
+                        icon: const Icon(Icons.restore_page_outlined, size: 18),
+                        label: const Text('Restore ke Lokasi Asli'),
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: AppTheme.textPrimary,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(20),
                           ),
-                        ],
+                        ),
                       ),
-                    );
+                      ElevatedButton.icon(
+                        onPressed: () async {
+                          final confirm = await showDialog<bool>(
+                            context: context,
+                            builder: (ctx) => AlertDialog(
+                              title: const Text('Hapus Permanen?'),
+                              content: const Text(
+                                'Tindakan ini akan menghapus file dari disk secara permanen dan tidak dapat dikembalikan lagi.',
+                              ),
+                              actions: [
+                                TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Batal')),
+                                ElevatedButton(
+                                  onPressed: () => Navigator.pop(ctx, true),
+                                  style: ElevatedButton.styleFrom(backgroundColor: Colors.red.shade700, foregroundColor: Colors.white),
+                                  child: const Text('Hapus Permanen'),
+                                ),
+                              ],
+                            ),
+                          );
 
-                    if (confirm == true) {
-                      final count = await state.purgeSelectedQuarantine();
-                      if (context.mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text('$count file dihapus secara permanen.'),
-                            backgroundColor: AppTheme.charcoal,
+                          if (confirm == true) {
+                            final count = await state.purgeSelectedQuarantine();
+                            if (context.mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text('$count file dihapus secara permanen.'),
+                                  backgroundColor: AppTheme.charcoal,
+                                ),
+                              );
+                            }
+                          }
+                        },
+                        icon: const Icon(Icons.delete_forever_outlined, size: 18),
+                        label: const Text('Hapus Permanen'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.red.shade700,
+                          foregroundColor: Colors.white,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(20),
                           ),
-                        );
-                      }
-                    }
-                  },
-                  icon: const Icon(Icons.delete_forever_outlined, size: 18),
-                  label: const Text('Hapus Permanen'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.red.shade700,
-                    foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(20),
-                    ),
+                        ),
+                      ),
+                    ],
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
       ],

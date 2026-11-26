@@ -1,7 +1,7 @@
 use crate::models::{format_bytes, FileCategory, ScanResult, ScannedFile};
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::fs;
-use std::io::Read;
+use std::io::{Read, Seek, SeekFrom};
 use std::path::{Path, PathBuf};
 use std::time::{Duration, Instant, SystemTime};
 use walkdir::WalkDir;
@@ -38,19 +38,35 @@ impl Scanner {
             }
         }
 
-        // 1. Scan for Temp & Installer files
+        // 1. Scan for Temp, Installers, Large Forgotten Files, & Empty Folders
         for target in &scan_paths {
             Self::scan_directory_candidates(target, &mut items, &mut total_scanned);
         }
 
-        // 2. Scan for Duplicates within target folders
+        // Track already-queued candidate paths to avoid double counting
+        let seen_paths: HashSet<String> = items.iter().map(|i| i.path.clone()).collect();
+
+        // 2. Scan for Duplicates in non-Temp folders
         for target in &scan_paths {
-            Self::scan_duplicates_in_path(target, &mut items);
+            let is_temp = target.to_string_lossy().to_lowercase().contains("temp");
+            if !is_temp {
+                Self::scan_duplicates_in_path(target, &mut items, &seen_paths);
+            }
         }
+
+        // Sort largest reclaimable candidates first
+        items.sort_by(|a, b| b.size_bytes.cmp(&a.size_bytes));
 
         let total_candidates = items.len();
         let total_reclaimable_bytes: u64 = items.iter().map(|f| f.size_bytes).sum();
         let human_reclaimable = format_bytes(total_reclaimable_bytes);
+
+        // Keep top 500 items in UI payload so rendering stays snappy even with thousands of temp files
+        const MAX_UI_ITEMS: usize = 500;
+        if items.len() > MAX_UI_ITEMS {
+            items.truncate(MAX_UI_ITEMS);
+        }
+
         let scan_duration_ms = start_time.elapsed().as_millis();
 
         ScanResult {
@@ -82,7 +98,6 @@ impl Scanner {
             *total_scanned += 1;
 
             if entry.file_type().is_dir() {
-                // Check if directory is empty
                 if let Ok(mut read_dir) = fs::read_dir(path) {
                     if read_dir.next().is_none() && path != dir {
                         items.push(ScannedFile {
@@ -130,7 +145,6 @@ impl Scanner {
 
             // Candidate A: Windows Temp files
             if is_temp_dir {
-                // Only consider temp files older than 24 hours to avoid active locks
                 if age_days >= 1 || ext == "tmp" || ext == "log" || ext == "bak" {
                     items.push(ScannedFile {
                         id: format!("temp_{}", blake3::hash(path.to_string_lossy().as_bytes()).to_hex()),
@@ -167,7 +181,7 @@ impl Scanner {
             }
 
             // Candidate C: Large forgotten files (> 100 MB and untouched for > 90 days)
-            const LARGE_FILE_THRESHOLD: u64 = 100 * 1024 * 1024; // 100 MB
+            const LARGE_FILE_THRESHOLD: u64 = 100 * 1024 * 1024;
             if size >= LARGE_FILE_THRESHOLD && age_days >= 90 {
                 items.push(ScannedFile {
                     id: format!("large_{}", blake3::hash(path.to_string_lossy().as_bytes()).to_hex()),
@@ -179,13 +193,17 @@ impl Scanner {
                     reason: format!("File besar berukuran {}, belum dibuka {} hari", format_bytes(size), age_days),
                     last_modified: Some(last_modified_str.clone()),
                     hash: None,
-                    recommended_for_deletion: false, // Large files require explicit user confirmation
+                    recommended_for_deletion: false,
                 });
             }
         }
     }
 
-    fn scan_duplicates_in_path(dir: &Path, items: &mut Vec<ScannedFile>) {
+    fn scan_duplicates_in_path(
+        dir: &Path,
+        items: &mut Vec<ScannedFile>,
+        seen_paths: &HashSet<String>,
+    ) {
         let mut size_map: HashMap<u64, Vec<PathBuf>> = HashMap::new();
 
         // Pass 1: Group files by exact byte size
@@ -197,7 +215,6 @@ impl Scanner {
             if entry.file_type().is_file() {
                 if let Ok(meta) = entry.metadata() {
                     let len = meta.len();
-                    // Ignore tiny files < 4KB for duplicate scanning
                     if len > 4096 {
                         size_map.entry(len).or_default().push(entry.into_path());
                     }
@@ -205,45 +222,80 @@ impl Scanner {
             }
         }
 
-        // Pass 2: Hash files that share exact size
+        // Pass 2: Quick partial hash (head + tail), then full BLAKE3 hash only on matches
         for (size, paths) in size_map {
             if paths.len() < 2 {
                 continue;
             }
 
-            let mut hash_map: HashMap<String, Vec<PathBuf>> = HashMap::new();
+            let mut quick_map: HashMap<String, Vec<PathBuf>> = HashMap::new();
             for path in paths {
-                if let Ok(hash) = Self::compute_file_hash(&path) {
-                    hash_map.entry(hash).or_default().push(path);
+                if let Ok(qhash) = Self::compute_quick_hash(&path, size) {
+                    quick_map.entry(qhash).or_default().push(path);
                 }
             }
 
-            for (hash, dupes) in hash_map {
-                if dupes.len() >= 2 {
-                    // Mark duplicate copies (keep the first one, recommend others)
-                    for (index, dupe_path) in dupes.iter().enumerate().skip(1) {
-                        let filename = dupe_path
-                            .file_name()
-                            .unwrap_or_default()
-                            .to_string_lossy()
-                            .to_string();
+            for (_qhash, quick_matches) in quick_map {
+                if quick_matches.len() < 2 {
+                    continue;
+                }
 
-                        items.push(ScannedFile {
-                            id: format!("dup_{}", blake3::hash(dupe_path.to_string_lossy().as_bytes()).to_hex()),
-                            path: dupe_path.to_string_lossy().to_string(),
-                            filename,
-                            size_bytes: size,
-                            human_size: format_bytes(size),
-                            category: FileCategory::Duplicate,
-                            reason: format!("Duplikat identik dari {}", dupes[0].display()),
-                            last_modified: None,
-                            hash: Some(hash.clone()),
-                            recommended_for_deletion: index > 0,
-                        });
+                let mut hash_map: HashMap<String, Vec<PathBuf>> = HashMap::new();
+                for path in quick_matches {
+                    if let Ok(hash) = Self::compute_file_hash(&path) {
+                        hash_map.entry(hash).or_default().push(path);
+                    }
+                }
+
+                for (hash, dupes) in hash_map {
+                    if dupes.len() >= 2 {
+                        for (index, dupe_path) in dupes.iter().enumerate().skip(1) {
+                            let path_str = dupe_path.to_string_lossy().to_string();
+                            if seen_paths.contains(&path_str) {
+                                continue;
+                            }
+
+                            let filename = dupe_path
+                                .file_name()
+                                .unwrap_or_default()
+                                .to_string_lossy()
+                                .to_string();
+
+                            items.push(ScannedFile {
+                                id: format!("dup_{}", blake3::hash(path_str.as_bytes()).to_hex()),
+                                path: path_str,
+                                filename,
+                                size_bytes: size,
+                                human_size: format_bytes(size),
+                                category: FileCategory::Duplicate,
+                                reason: format!("Duplikat identik dari {}", dupes[0].display()),
+                                last_modified: None,
+                                hash: Some(hash.clone()),
+                                recommended_for_deletion: index > 0,
+                            });
+                        }
                     }
                 }
             }
         }
+    }
+
+    fn compute_quick_hash(path: &Path, size: u64) -> Result<String, std::io::Error> {
+        const CHUNK: usize = 65536;
+        let mut file = fs::File::open(path)?;
+        let mut hasher = blake3::Hasher::new();
+        let mut buffer = vec![0u8; CHUNK];
+
+        let head_read = file.read(&mut buffer)?;
+        hasher.update(&buffer[..head_read]);
+
+        if size > (CHUNK as u64) * 2 {
+            file.seek(SeekFrom::End(-(CHUNK as i64)))?;
+            let tail_read = file.read(&mut buffer)?;
+            hasher.update(&buffer[..tail_read]);
+        }
+
+        Ok(hasher.finalize().to_hex().to_string())
     }
 
     pub fn compute_file_hash(path: &Path) -> Result<String, std::io::Error> {

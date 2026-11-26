@@ -1,124 +1,36 @@
 import 'dart:async';
-import 'dart:convert';
-import 'dart:io';
 import '../models/engine_models.dart';
+import 'rust_engine_transport.dart';
+import 'rust_engine_transport_interface.dart';
 
 class RustEngineService {
   static final RustEngineService _instance = RustEngineService._internal();
   factory RustEngineService() => _instance;
   RustEngineService._internal();
 
-  Process? _process;
-  int _requestId = 0;
-  final Map<String, Completer<dynamic>> _pendingRequests = {};
-
-  String get _enginePath {
-    // Look in current directory or target/release/debug
-    final candidates = [
-      'rapih_engine.exe',
-      '../rapih_engine/target/release/rapih_engine.exe',
-      '../rapih_engine/target/debug/rapih_engine.exe',
-      'target/release/rapih_engine.exe',
-      'target/debug/rapih_engine.exe',
-    ];
-
-    for (final c in candidates) {
-      if (File(c).existsSync()) {
-        return c;
-      }
-    }
-    return 'rapih_engine.exe';
-  }
+  final PlatformEngineTransport _transport = createEngineTransport();
+  bool isLive = false;
 
   Future<void> initEngine() async {
-    final path = _enginePath;
-    if (!File(path).existsSync()) {
-      return;
-    }
-
-    try {
-      _process = await Process.start(path, []);
-      _process!.stdout
-          .transform(utf8.decoder)
-          .transform(const LineSplitter())
-          .listen(_handleStdoutLine);
-
-      _process!.stderr
-          .transform(utf8.decoder)
-          .transform(const LineSplitter())
-          .listen((line) {
-        // Log engine stderr
-      });
-    } catch (_) {
-      // Process start fallback
-    }
+    isLive = await _transport.init();
   }
 
-  void _handleStdoutLine(String line) {
-    if (line.trim().isEmpty) return;
-    try {
-      final json = jsonDecode(line) as Map<String, dynamic>;
-      final id = json['id'] as String?;
-      if (id != null && _pendingRequests.containsKey(id)) {
-        final completer = _pendingRequests.remove(id)!;
-        if (json['error'] != null) {
-          completer.completeError(json['error']);
-        } else {
-          completer.complete(json['result']);
-        }
-      }
-    } catch (_) {}
+  void dispose() {
+    _transport.dispose();
+    isLive = false;
   }
 
   Future<dynamic> _callMethod(String method, [Map<String, dynamic>? params]) async {
-    // If persistent process is not running, run via CLI subcommand directly
-    if (_process == null) {
-      return _callViaCli(method, params);
+    if (!isLive) {
+      // Retry initializing once in case engine started after UI
+      isLive = await _transport.init();
     }
 
-    final id = 'req_${++_requestId}';
-    final completer = Completer<dynamic>();
-    _pendingRequests[id] = completer;
-
-    final payload = {
-      'id': id,
-      'method': method,
-      if (params != null) 'params': params,
-    };
-
-    _process!.stdin.writeln(jsonEncode(payload));
-    await _process!.stdin.flush();
-
-    return completer.future.timeout(const Duration(seconds: 45), onTimeout: () {
-      _pendingRequests.remove(id);
-      throw TimeoutException('Request to Rust engine timed out');
-    });
-  }
-
-  Future<dynamic> _callViaCli(String method, [Map<String, dynamic>? params]) async {
-    final engineBinary = _enginePath;
-    final List<String> args = ['--cmd', method];
-    if (params != null) {
-      args.add(jsonEncode(params));
+    if (isLive) {
+      return _transport.callMethod(method, params);
     }
 
-    if (File(engineBinary).existsSync()) {
-      final result = await Process.run(engineBinary, args);
-      if (result.exitCode == 0) {
-        final output = result.stdout.toString().trim();
-        final json = jsonDecode(output) as Map<String, dynamic>;
-        if (json['success'] == true) {
-          return json['data'];
-        } else {
-          throw Exception(json['message'] ?? 'Engine execution failed');
-        }
-      } else {
-        throw Exception(result.stderr.toString());
-      }
-    } else {
-      // Mock / In-Memory Demo Fallback if Rust binary is not yet compiled
-      return _mockResponse(method, params);
-    }
+    return _mockResponse(method, params);
   }
 
   Future<List<DiskStats>> getDiskStats() async {
@@ -198,7 +110,7 @@ class RustEngineService {
     return data as int? ?? ids.length;
   }
 
-  // Realistic mock data if binary is starting up
+  // Fallback demo data only used when engine binary/server is unavailable
   dynamic _mockResponse(String method, [Map<String, dynamic>? params]) {
     switch (method) {
       case 'disk_info':
@@ -236,7 +148,7 @@ class RustEngineService {
 
   Map<String, dynamic> _mockScanResultJson() => {
         'total_scanned_files': 1420,
-        'total_candidates': 6,
+        'total_candidates': 4,
         'total_reclaimable_bytes': 4529848320,
         'human_reclaimable': '4.22 GB',
         'scan_duration_ms': 340,
@@ -292,7 +204,7 @@ class RustEngineService {
   OrganizeResult _mockOrganizeResult() => OrganizeResult.fromJson(_mockOrganizeResultJson());
 
   Map<String, dynamic> _mockOrganizeResultJson() => {
-        'total_items': 5,
+        'total_items': 3,
         'items': [
           {
             'source_path': 'C:\\Users\\Burhan\\Downloads\\Laporan_Keuangan_Q3.pdf',
