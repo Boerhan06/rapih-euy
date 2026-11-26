@@ -1,0 +1,32 @@
+# Rust build artifacts
+target/
+**/target/
+**/*.rs.bk
+Cargo.lock
+
+# Flutter & Dart artifacts
+.dart_tool/
+**/.dart_tool/
+build/
+**/build/
+.packages
+**/.packages
+.pub-cache/
+.pub/
+rapih_ui/.flutter-plugins
+rapih_ui/.flutter-plugins-dependencies
+
+# Quarantine & Local Test Sandboxes
+test_sandbox/
+.rapih_quarantine/
+*.tmp
+*.log
+
+# Windows & OS Artifacts
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+.DS_Store
+.idea/
+.vscode/
